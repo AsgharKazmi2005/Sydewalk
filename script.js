@@ -16,8 +16,26 @@ const inputElevation = document.querySelector('.form__input--elevation');
 navigator.geolocation.getCurrentPosition(
   // Callback
   function (pos) {
+    // Deconstruct longitude and laditude from Geolocation API
     const { latitude } = pos.coords;
     const { longitude } = pos.coords;
+    // Create array for use as argument in the Leaflet API
+    const coords = [latitude, longitude];
+
+    // Fetch map for user coordinates from Leaflet via openstreetmap.org
+    const map = L.map('map').setView(coords, 16);
+    L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}.png',
+      {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      }
+    ).addTo(map);
+
+    L.marker(coords)
+      .addTo(map)
+      .bindPopup('A pretty CSS popup.<br> Easily customizable.')
+      .openPopup();
   },
   // Callback Error
   function () {
