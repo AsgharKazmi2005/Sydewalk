@@ -36,6 +36,27 @@ navigator.geolocation.getCurrentPosition(
       .addTo(map)
       .bindPopup('A pretty CSS popup.<br> Easily customizable.')
       .openPopup();
+
+    // Configure Map Clicks by adding event listener (.on())
+    map.on('click', function (event) {
+      // Deconstruct latitude/longitude from click event
+      const { lat, lng } = event.latlng;
+      // Add new marker on map using coordinates
+      L.marker([lat, lng])
+        .addTo(map)
+        .bindPopup(
+          // Configure settings for marker pop-up
+          L.popup({
+            maxWidth: 250,
+            minWidth: 100,
+            autoClose: false,
+            closeOnClick: false,
+            className: 'shopping-popup',
+          })
+        )
+        .setPopupContent('Event')
+        .openPopup();
+    });
   },
   // Callback Error
   function () {
