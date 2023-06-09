@@ -5,12 +5,13 @@ const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 
 // DOM Variables
 const form = document.querySelector('.form');
-const containerWorkouts = document.querySelector('.workouts');
+const containerWorkouts = document.querySelector('.event');
 const inputType = document.querySelector('.form__input--type');
 const inputDistance = document.querySelector('.form__input--distance');
 const inputDuration = document.querySelector('.form__input--duration');
-const inputCadence = document.querySelector('.form__input--cadence');
-const inputElevation = document.querySelector('.form__input--elevation');
+const inputCost = document.querySelector('.form__input--cost');
+const inputCalories = document.querySelector('.form__input--calories');
+let map, mapEvent;
 
 //Derive User Location
 navigator.geolocation.getCurrentPosition(
@@ -23,7 +24,7 @@ navigator.geolocation.getCurrentPosition(
     const coords = [latitude, longitude];
 
     // Fetch map for user coordinates from Leaflet via openstreetmap.org
-    const map = L.map('map').setView(coords, 16);
+    map = L.map('map').setView(coords, 16);
     L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}.png',
       {
@@ -39,23 +40,9 @@ navigator.geolocation.getCurrentPosition(
 
     // Configure Map Clicks by adding event listener (.on())
     map.on('click', function (event) {
-      // Deconstruct latitude/longitude from click event
-      const { lat, lng } = event.latlng;
-      // Add new marker on map using coordinates
-      L.marker([lat, lng])
-        .addTo(map)
-        .bindPopup(
-          // Configure settings for marker pop-up
-          L.popup({
-            maxWidth: 250,
-            minWidth: 100,
-            autoClose: false,
-            closeOnClick: false,
-            className: 'shopping-popup',
-          })
-        )
-        .setPopupContent('Event')
-        .openPopup();
+      mapEvent = event;
+      form.classList.remove('hidden');
+      inputDistance.focus();
     });
   },
   // Callback Error
@@ -63,3 +50,37 @@ navigator.geolocation.getCurrentPosition(
     alert('Location Access Denied');
   }
 );
+
+// User clicks enter after creating an event
+form.addEventListener('submit', function (e) {
+  e.preventDefault();
+  //Clear input fields
+  inputDistance.value =
+    inputCalories.value =
+    inputDuration.value =
+    inputCost.value =
+      '';
+  // Deconstruct latitude/longitude from click event
+  const { lat, lng } = mapEvent.latlng;
+  // Display Marker
+  L.marker([lat, lng])
+    .addTo(map)
+    .bindPopup(
+      // Configure settings for marker pop-up
+      L.popup({
+        maxWidth: 250,
+        minWidth: 100,
+        autoClose: false,
+        closeOnClick: false,
+        className: 'shopping-popup',
+      })
+    )
+    .setPopupContent('Event')
+    .openPopup();
+});
+
+// Swap Cost and Calories fields when user switches from shopping to excercising
+inputType.addEventListener('change', function () {
+  inputCalories.closest('.form__row').classList.toggle('form__row--hidden');
+  inputCost.closest('.form__row').classList.toggle('form__row--hidden');
+});

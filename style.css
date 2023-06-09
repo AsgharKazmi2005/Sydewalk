@@ -215,6 +215,6 @@ a:visited {
 .shopping-popup .leaflet-popup-content-wrapper {
   border-left: 5px solid var(--color-brand--2);
 }
-.excersizing-popup .leaflet-popup-content-wrapper {
+.excercising-popup .leaflet-popup-content-wrapper {
   border-left: 5px solid var(--color-brand--1);
 }

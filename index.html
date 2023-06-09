@@ -30,15 +30,16 @@
   </head>
   <body>
     <div class="sidebar">
+      <h1>Sydewalk</h1>
       <!-- <img src="logo.png" alt="Logo" class="logo" /> -->
 
-      <ul class="workouts">
+      <ul class="event">
         <form class="form hidden">
           <div class="form__row">
             <label class="form__label">Type</label>
             <select class="form__input form__input--type">
-              <option value="running">Running</option>
-              <option value="cycling">Cycling</option>
+              <option value="shopping">Shopping</option>
+              <option value="excercising">Excercising</option>
             </select>
           </div>
           <div class="form__row">
@@ -53,18 +54,12 @@
             />
           </div>
           <div class="form__row">
-            <label class="form__label">Cadence</label>
-            <input
-              class="form__input form__input--cadence"
-              placeholder="step/min"
-            />
+            <label class="form__label">Cost</label>
+            <input class="form__input form__input--cost" placeholder="usd" />
           </div>
           <div class="form__row form__row--hidden">
-            <label class="form__label">Elev Gain</label>
-            <input
-              class="form__input form__input--elevation"
-              placeholder="meters"
-            />
+            <label class="form__label">Calories</label>
+            <input class="form__input form__input--calories" />
           </div>
           <button class="form__btn">OK</button>
         </form>
