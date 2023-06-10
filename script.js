@@ -17,6 +17,7 @@ class App {
   // Private Variables
   #map;
   #mapEvent;
+  #zoom = 15;
   #events = [];
 
   constructor() {
@@ -26,6 +27,8 @@ class App {
     form.addEventListener('submit', this._newEvent.bind(this));
     // Swap Cost and Calories fields when user switches from shopping to excercising
     inputType.addEventListener('change', this._toggleField);
+
+    containerEvents.addEventListener('click', this._moveToPopup.bind(this));
   }
 
   // Ask the user for location permissions and then perform callback functions
@@ -50,7 +53,7 @@ class App {
     const coords = [latitude, longitude];
 
     // Fetch map for user coordinates from Leaflet via openstreetmap.org
-    this.#map = L.map('map').setView(coords, 16);
+    this.#map = L.map('map').setView(coords, this.#zoom);
     L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}.png',
       {
@@ -146,7 +149,8 @@ class App {
     //Hide Form
     this._hideForm();
 
-    // Add List in HTML
+    //Add events to local storage
+    this._setLocalStorage();
   }
 
   _renderMarker(event) {
@@ -223,6 +227,28 @@ class App {
 
     // Append to the end
     form.insertAdjacentHTML('afterend', html);
+  }
+
+  _moveToPopup(e) {
+    // Recieve the porent element of the list item
+    const eventEl = e.target.closest('.workout');
+    // Guard Clause
+    if (!eventEl) return;
+
+    //use .find() to return the marker with the same id
+    const event = this.#events.find(event => event.id === eventEl.dataset.id);
+
+    // Pan UI to the marker using leaflet library tools
+    this.#map.setView(event.coords, this.#zoom + 1, {
+      animate: true,
+      pan: {
+        duration: 1.5,
+      },
+    });
+  }
+
+  _setLocalStorage() {
+    localStorage.setItem('events', JSON.stringify(this.#events));
   }
 }
 
