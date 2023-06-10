@@ -12,6 +12,57 @@ const inputCost = document.querySelector('.form__input--cost');
 const inputCalories = document.querySelector('.form__input--calories');
 let map, mapEvent;
 
+//Create a class that will be the parent of Shopping and Excercising
+class Event {
+  date = new Date();
+  id = (Date.now() + '').slice(-10);
+  constructor(coords, distance, duration) {
+    this.coords = coords;
+    this.distance = distance;
+    this.duration = duration;
+  }
+
+  _createDesc() {
+    //prettier-ignore
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+    console.log(this);
+    this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${
+      months[this.date.getMonth()]
+    } ${this.date.getDate()}`;
+  }
+}
+//Child Class
+class Shopping extends Event {
+  type = 'shopping';
+  constructor(coords, distance, duration, cost) {
+    super(coords, distance, duration);
+    this.cost = cost;
+    this.calcCostPerHour;
+    this._createDesc();
+  }
+
+  calcCostPerHour() {
+    this.costph = this.cost / (this.duration / 60);
+    return this.costph;
+  }
+}
+// Child Class
+class Excercising extends Event {
+  type = 'excercising';
+  constructor(coords, distance, duration, calories) {
+    super(coords, distance, duration);
+    this.calories = calories;
+    this.calcCalPerHour;
+    this._createDesc();
+  }
+
+  calcCalPerHour() {
+    this.calph = this.calories / (this.duration / 60);
+    return this.calph;
+  }
+}
+
 // Create a class that holds and executes the functions of our app
 class App {
   // Private Variables
@@ -23,12 +74,15 @@ class App {
   constructor() {
     // ask user for location permission
     this._getPosition();
+    // Get data from Local Storage
+    this._getLocalStorage();
     // User clicks enter after creating an event, use .bind() to make this point to the instance
     form.addEventListener('submit', this._newEvent.bind(this));
     // Swap Cost and Calories fields when user switches from shopping to excercising
     inputType.addEventListener('change', this._toggleField);
-
+    // If an element on the list is clicked, pan to that popup
     containerEvents.addEventListener('click', this._moveToPopup.bind(this));
+    //
   }
 
   // Ask the user for location permissions and then perform callback functions
@@ -69,6 +123,12 @@ class App {
 
     // Configure Map Clicks by adding event listener (.on()), use .bind to bind this to the instance
     this.#map.on('click', this._showForm.bind(this));
+
+    // Loop over and render each event from the Local Storage
+    this.#events.forEach(e => {
+      // Re-render Markers
+      this._renderMarker(e);
+    });
   }
   // Display the event form once user clicks
   _showForm(e) {
@@ -93,6 +153,7 @@ class App {
     inputCalories.closest('.form__row').classList.toggle('form__row--hidden');
     inputCost.closest('.form__row').classList.toggle('form__row--hidden');
   }
+
   // Create a new marker
   _newEvent(e) {
     const guardClauseNum = (...inputs) =>
@@ -153,6 +214,7 @@ class App {
     this._setLocalStorage();
   }
 
+  // Render Marker onto map
   _renderMarker(event) {
     // Display Marker
     L.marker(event.coords)
@@ -173,6 +235,7 @@ class App {
       .openPopup();
   }
 
+  // Render event onto UI List
   _renderEvent(event) {
     // Add metrics to an HTML String
     let html = `         
@@ -192,6 +255,7 @@ class App {
       </div>`;
 
     // If shopping, add shopping metrics to the list
+    console.log(event);
     if (event.type === 'shopping') {
       html += `          
       <div class="workout__details">
@@ -229,6 +293,7 @@ class App {
     form.insertAdjacentHTML('afterend', html);
   }
 
+  // Pan to Popup when UI List Element is clicked
   _moveToPopup(e) {
     // Recieve the porent element of the list item
     const eventEl = e.target.closest('.workout');
@@ -247,61 +312,37 @@ class App {
     });
   }
 
+  // Save the events into the local storage
   _setLocalStorage() {
     localStorage.setItem('events', JSON.stringify(this.#events));
+  }
+
+  //Retrieve the events from local storage
+  _getLocalStorage() {
+    // Recieve parsed data
+    const data = JSON.parse(localStorage.getItem('events'));
+    // Guard Clause
+    if (!data) return;
+
+    // Put local storage into the events array
+    this.#events = data;
+
+    // Loop over and render each event
+    this.#events.forEach(e => {
+      // Re-attach Prototype
+      e.__proto__ =
+        e.type === 'shopping' ? Shopping.prototype : Excercising.prototype;
+      // Re-render event
+      this._renderEvent(e);
+    });
+  }
+
+  //Delete all events
+  reset() {
+    localStorage.removeItem('events');
+    location.reload;
   }
 }
 
 // Create an instance for our application
 const app = new App();
-
-//Create a class that will be the parent of Shopping and Excercising
-class Event {
-  date = new Date();
-  id = (Date.now() + '').slice(-10);
-  constructor(coords, distance, duration) {
-    this.coords = coords;
-    this.distance = distance;
-    this.duration = duration;
-  }
-
-  _createDesc() {
-    //prettier-ignore
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-    console.log(this);
-    this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${
-      months[this.date.getMonth()]
-    } ${this.date.getDate()}`;
-  }
-}
-
-class Shopping extends Event {
-  type = 'shopping';
-  constructor(coords, distance, duration, cost) {
-    super(coords, distance, duration);
-    this.cost = cost;
-    this.calcCostPerHour;
-    this._createDesc();
-  }
-
-  calcCostPerHour() {
-    this.costph = this.cost / (this.duration / 60);
-    return this.costph;
-  }
-}
-
-class Exercising extends Event {
-  type = 'excercising';
-  constructor(coords, distance, duration, calories) {
-    super(coords, distance, duration);
-    this.calories = calories;
-    this.calcCalPerHour;
-    this._createDesc();
-  }
-
-  calcCalPerHour() {
-    this.calph = this.calories / (this.duration / 60);
-    return this.calph;
-  }
-}
