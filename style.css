@@ -77,10 +77,10 @@ a:visited {
   grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 0.75rem 1.5rem;
 }
-.workout--running {
+.event--shopping {
   border-left: 5px solid var(--color-brand--2);
 }
-.workout--cycling {
+.event--excercising {
   border-left: 5px solid var(--color-brand--1);
 }
 
@@ -125,7 +125,7 @@ a:visited {
 
   /* Match height and activity boxes */
   height: 9.25rem;
-  transition: all 0.5s, transform 1ms;
+  transition: all 1s, transform 2ms;
 }
 
 .form.hidden {

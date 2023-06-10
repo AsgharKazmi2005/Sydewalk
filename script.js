@@ -1,11 +1,10 @@
 'use strict';
 
 // prettier-ignore
-const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 // DOM Variables
 const form = document.querySelector('.form');
-const containerWorkouts = document.querySelector('.event');
+const containerEvents = document.querySelector('.event');
 const inputType = document.querySelector('.form__input--type');
 const inputDistance = document.querySelector('.form__input--distance');
 const inputDuration = document.querySelector('.form__input--duration');
@@ -18,6 +17,7 @@ class App {
   // Private Variables
   #map;
   #mapEvent;
+  #events = [];
 
   constructor() {
     // ask user for location permission
@@ -74,6 +74,17 @@ class App {
     inputDistance.focus();
   }
 
+  // Hide the form after user submits
+  _hideForm() {
+    //Clear input fields
+    inputDistance.value =
+      inputCalories.value =
+      inputDuration.value =
+      inputCost.value =
+        '';
+    form.classList.add('hidden');
+  }
+
   // Swap Cost and Calories fields when user switches from shopping to excercising
   _toggleField() {
     inputCalories.closest('.form__row').classList.toggle('form__row--hidden');
@@ -81,17 +92,66 @@ class App {
   }
   // Create a new marker
   _newEvent(e) {
+    const guardClauseNum = (...inputs) =>
+      inputs.every(input => Number.isFinite(input));
+
+    const positive = (...inputs) => inputs.every(input => input > 0);
+
     e.preventDefault();
-    //Clear input fields
-    inputDistance.value =
-      inputCalories.value =
-      inputDuration.value =
-      inputCost.value =
-        '';
-    // Deconstruct latitude/longitude from click event
+
+    // Store Data
+    const type = inputType.value;
+    const distance = +inputDistance.value;
+    const duration = +inputDuration.value;
     const { lat, lng } = this.#mapEvent.latlng;
+    let event;
+    // Filter between shopping and excercising, check validity of data, and create a new object
+
+    // Shopping
+    if (type === 'shopping') {
+      const cost = +inputCost.value;
+      // Guard Clause
+      if (
+        !guardClauseNum(distance, duration, cost) ||
+        !positive(distance, duration, cost)
+      )
+        return alert('Inputs must be Positive, please check your inputs.');
+
+      // Create Object
+      event = new Shopping([lat, lng], distance, duration, cost);
+    }
+
+    // Excercising
+    if (type === 'excercising') {
+      const calories = +inputCalories.value;
+      if (
+        !guardClauseNum(distance, duration, calories) ||
+        !positive(distance, duration, calories)
+      )
+        return alert('Inputs must be Positive, please check your inputs.');
+
+      // Create Object
+      event = new Exercising([lat, lng], distance, duration, calories);
+    }
+
+    // Add Event to Array
+    this.#events.push(event);
+
+    //Add Marker
+    this._renderMarker(event);
+
+    // Add Event
+    this._renderEvent(event);
+
+    //Hide Form
+    this._hideForm();
+
+    // Add List in HTML
+  }
+
+  _renderMarker(event) {
     // Display Marker
-    L.marker([lat, lng])
+    L.marker(event.coords)
       .addTo(this.#map)
       .bindPopup(
         // Configure settings for marker pop-up
@@ -100,11 +160,69 @@ class App {
           minWidth: 100,
           autoClose: false,
           closeOnClick: false,
-          className: 'shopping-popup',
+          className: `${event.type}-popup`,
         })
       )
-      .setPopupContent('Event')
+      .setPopupContent(
+        `${event.type === 'shopping' ? '🛒' : '🏃‍♂️'} ${event.description}`
+      )
       .openPopup();
+  }
+
+  _renderEvent(event) {
+    // Add metrics to an HTML String
+    let html = `         
+    <li class="workout event--${event.type}" data-id="${event.id}">
+      <h2 class="workout__title">${event.description}</h2>
+      <div class="workout__details">
+        <span class="workout__icon">${
+          event.type === 'shopping' ? '🛒' : '🏃‍♂️'
+        }</span>
+        <span class="workout__value">${event.distance}</span>
+        <span class="workout__unit">km</span>
+      </div>
+      <div class="workout__details">
+        <span class="workout__icon">⏱</span>
+        <span class="workout__value">${event.duration}</span>
+       <span class="workout__unit">min</span>
+      </div>`;
+
+    // If shopping, add shopping metrics to the list
+    if (event.type === 'shopping') {
+      html += `          
+      <div class="workout__details">
+        <span class="workout__icon">💵</span>
+        <span class="workout__value">${event.cost}</span>
+        <span class="workout__unit">usd</span>
+      </div>
+     <div class="workout__details">
+        <span class="workout__icon">💰</span>
+        <span class="workout__value">${event
+          .calcCostPerHour()
+          .toFixed(2)}</span>
+        <span class="workout__unit">$/hr</span>
+      </div>
+    </li>`;
+    }
+
+    // If excercising, add the excercising metrics to the list
+    if (event.type === 'excercising') {
+      html += `          
+      <div class="workout__details">
+        <span class="workout__icon">⚡️</span>
+        <span class="workout__value">${event.calories}</span>
+        <span class="workout__unit">cal</span>
+     </div>
+      <div class="workout__details">
+        <span class="workout__icon">🏋️‍♂️</span>
+        <span class="workout__value">${event.calcCalPerHour().toFixed(2)}</span>
+        <span class="workout__unit">cal/hr</span>
+      </div>
+    </li>`;
+    }
+
+    // Append to the end
+    form.insertAdjacentHTML('afterend', html);
   }
 }
 
@@ -114,36 +232,50 @@ const app = new App();
 //Create a class that will be the parent of Shopping and Excercising
 class Event {
   date = new Date();
-  id = (new Date.now() + '').slice(10);
+  id = (Date.now() + '').slice(-10);
   constructor(coords, distance, duration) {
     this.coords = coords;
     this.distance = distance;
     this.duration = duration;
   }
+
+  _createDesc() {
+    //prettier-ignore
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+    console.log(this);
+    this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${
+      months[this.date.getMonth()]
+    } ${this.date.getDate()}`;
+  }
 }
 
 class Shopping extends Event {
+  type = 'shopping';
   constructor(coords, distance, duration, cost) {
     super(coords, distance, duration);
     this.cost = cost;
     this.calcCostPerHour;
+    this._createDesc();
   }
 
   calcCostPerHour() {
-    this.costph = this.duration / this.cost;
+    this.costph = this.cost / (this.duration / 60);
     return this.costph;
   }
 }
 
 class Exercising extends Event {
+  type = 'excercising';
   constructor(coords, distance, duration, calories) {
     super(coords, distance, duration);
     this.calories = calories;
     this.calcCalPerHour;
+    this._createDesc();
   }
 
   calcCalPerHour() {
-    this.calph = this.duration / this.calories;
+    this.calph = this.calories / (this.duration / 60);
     return this.calph;
   }
 }
