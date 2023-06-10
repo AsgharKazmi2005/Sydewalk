@@ -32,6 +32,7 @@ class Event {
     } ${this.date.getDate()}`;
   }
 }
+
 //Child Class
 class Shopping extends Event {
   type = 'shopping';
@@ -47,6 +48,7 @@ class Shopping extends Event {
     return this.costph;
   }
 }
+
 // Child Class
 class Excercising extends Event {
   type = 'excercising';
@@ -115,11 +117,6 @@ class App {
           '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }
     ).addTo(this.#map);
-
-    L.marker(coords)
-      .addTo(this.#map)
-      .bindPopup('A pretty CSS popup.<br> Easily customizable.')
-      .openPopup();
 
     // Configure Map Clicks by adding event listener (.on()), use .bind to bind this to the instance
     this.#map.on('click', this._showForm.bind(this));
