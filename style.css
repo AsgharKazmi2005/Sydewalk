@@ -50,10 +50,19 @@ a:visited {
   border-radius: 3px;
 }
 
-.logo {
-  width: 100%;
+.head {
   align-self: center;
   margin-bottom: 2rem;
+}
+
+.logo {
+  width: 100%;
+}
+
+p {
+  display: flex;
+  justify-content: space-around;
+  color: #ffffff;
 }
 
 .workouts {

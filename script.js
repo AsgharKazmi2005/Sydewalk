@@ -118,6 +118,11 @@ class App {
       }
     ).addTo(this.#map);
 
+    L.marker(coords)
+      .addTo(this.#map)
+      .bindPopup('Your approximate location')
+      .openPopup();
+
     // Configure Map Clicks by adding event listener (.on()), use .bind to bind this to the instance
     this.#map.on('click', this._showForm.bind(this));
 
