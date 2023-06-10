@@ -13,7 +13,7 @@ const inputCost = document.querySelector('.form__input--cost');
 const inputCalories = document.querySelector('.form__input--calories');
 let map, mapEvent;
 
-// Create a class that will hold all our data and functions
+// Create a class that holds and executes the functions of our app
 class App {
   // Private Variables
   #map;
@@ -110,3 +110,40 @@ class App {
 
 // Create an instance for our application
 const app = new App();
+
+//Create a class that will be the parent of Shopping and Excercising
+class Event {
+  date = new Date();
+  id = (new Date.now() + '').slice(10);
+  constructor(coords, distance, duration) {
+    this.coords = coords;
+    this.distance = distance;
+    this.duration = duration;
+  }
+}
+
+class Shopping extends Event {
+  constructor(coords, distance, duration, cost) {
+    super(coords, distance, duration);
+    this.cost = cost;
+    this.calcCostPerHour;
+  }
+
+  calcCostPerHour() {
+    this.costph = this.duration / this.cost;
+    return this.costph;
+  }
+}
+
+class Exercising extends Event {
+  constructor(coords, distance, duration, calories) {
+    super(coords, distance, duration);
+    this.calories = calories;
+    this.calcCalPerHour;
+  }
+
+  calcCalPerHour() {
+    this.calph = this.duration / this.calories;
+    return this.calph;
+  }
+}
