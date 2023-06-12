@@ -10,6 +10,12 @@ const inputDistance = document.querySelector('.form__input--distance');
 const inputDuration = document.querySelector('.form__input--duration');
 const inputCost = document.querySelector('.form__input--cost');
 const inputCalories = document.querySelector('.form__input--calories');
+const sortDivider = document.querySelector('.sort__divider');
+const showSortBtns = document.querySelector('.show__sort__btns');
+const validationMsg = document.querySelector('.validation__msg');
+const clearAllBtn = document.querySelector('.clr__all__btn');
+const sortContainer = document.querySelector('.sort__buttons__container');
+
 let map, mapEvent;
 
 //Create a class that will be the parent of Shopping and Excercising
@@ -70,6 +76,7 @@ class App {
   // Private Variables
   #map;
   #mapEvent;
+  #markers = [];
   #zoom = 15;
   #events = [];
 
@@ -83,8 +90,13 @@ class App {
     // Swap Cost and Calories fields when user switches from shopping to excercising
     inputType.addEventListener('change', this._toggleField);
     // If an element on the list is clicked, pan to that popup
-    containerEvents.addEventListener('click', this._moveToPopup.bind(this));
-    //
+    // containerEvents.addEventListener('click', this._moveToPopup.bind(this));
+    // Display buttons
+    showSortBtns.addEventListener('click', this._toggleSortBtns.bind(this));
+    //Sort event listener
+    sortContainer.addEventListener('click', this._sortAndRender.bind(this));
+    //Clear event listener
+    clearAllBtn.addEventListener('click', this._showDeleteMsg);
   }
 
   // Ask the user for location permissions and then perform callback functions
@@ -197,7 +209,7 @@ class App {
         return alert('Inputs must be Positive, please check your inputs.');
 
       // Create Object
-      event = new Exercising([lat, lng], distance, duration, calories);
+      event = new Excercising([lat, lng], distance, duration, calories);
     }
 
     // Add Event to Array
@@ -272,6 +284,7 @@ class App {
           .toFixed(2)}</span>
         <span class="workout__unit">$/hr</span>
       </div>
+      <button class="remove__btn">×</button>
     </li>`;
     }
 
@@ -288,6 +301,7 @@ class App {
         <span class="workout__value">${event.calcCalPerHour().toFixed(2)}</span>
         <span class="workout__unit">cal/hr</span>
       </div>
+      <button class="remove__btn">×</button>
     </li>`;
     }
 
@@ -296,23 +310,23 @@ class App {
   }
 
   // Pan to Popup when UI List Element is clicked
-  _moveToPopup(e) {
-    // Recieve the porent element of the list item
-    const eventEl = e.target.closest('.workout');
-    // Guard Clause
-    if (!eventEl) return;
+  // _moveToPopup(e) {
+  //   // Recieve the porent element of the list item
+  //   const eventEl = e.target.closest('.event');
+  //   // Guard Clause
+  //   if (!eventEl) return;
 
-    //use .find() to return the marker with the same id
-    const event = this.#events.find(event => event.id === eventEl.dataset.id);
+  //   //use .find() to return the marker with the same id
+  //   const event = this.#events.find(event => event.id === eventEl.dataset.id);
 
-    // Pan UI to the marker using leaflet library tools
-    this.#map.setView(event.coords, this.#zoom + 1, {
-      animate: true,
-      pan: {
-        duration: 1.5,
-      },
-    });
-  }
+  //   // Pan UI to the marker using leaflet library tools
+  //   this.#map.setView(event.coords, this.#zoom + 1, {
+  //     animate: true,
+  //     pan: {
+  //       duration: 1.5,
+  //     },
+  //   });
+  // }
 
   // Save the events into the local storage
   _setLocalStorage() {
@@ -344,7 +358,107 @@ class App {
     localStorage.removeItem('events');
     location.reload;
   }
+
+  //Sets marker into view
+  _setIntoView(foundWorkout) {
+    this.#map.setView(foundWorkout.coords, 13);
+  }
+  // Helper Sort function
+  _sortArray(array, currentDirection, type) {
+    // sort opposite to the currentDirection
+    if (currentDirection === 'ascending') {
+      array.sort(function (a, b) {
+        return b[type] - a[type];
+      });
+    }
+    if (currentDirection === 'descending') {
+      array.sort(function (a, b) {
+        return a[type] - b[type];
+      });
+    }
+  }
+  // Sort Array and Render it to UI
+  _sortAndRender(e) {
+    const element = e.target.closest('.sort__button');
+    let currentDirection = 'descending'; //default
+    if (!element) return;
+    const arrow = element.querySelector('.arrow');
+    const type = element.dataset.type;
+
+    // Set all arrows to default state (down)
+    sortContainer
+      .querySelectorAll('.arrow')
+      .forEach(e => e.classList.remove('arrow__up'));
+
+    // Get sort direction
+    const typeValues = this.#events.map(workout => {
+      return workout[type];
+    });
+    const sortedAscending = typeValues
+      .slice()
+      .sort(function (a, b) {
+        return a - b;
+      })
+      .join('');
+    const sortedDescending = typeValues
+      .slice()
+      .sort(function (a, b) {
+        return b - a;
+      })
+      .join('');
+
+    // Compare sortedAscending array with values from #event array to check how are they sorted
+    // Ascending
+    if (typeValues.join('') === sortedAscending) {
+      currentDirection = 'ascending';
+
+      arrow.classList.add('arrow__up');
+    }
+    // Descending
+    if (typeValues.join('') === sortedDescending) {
+      currentDirection = 'descending';
+
+      arrow.classList.remove('arrow__up');
+    }
+
+    // Sort main event array
+    this._sortArray(this.#events, currentDirection, type);
+
+    // Clear rendered event from DOM
+    containerEvents
+      .querySelectorAll('.workout')
+      .forEach(event => event.remove());
+    // Clear events from map
+    this.#markers.forEach(marker => marker.remove());
+    //Clear array
+    this.#markers = [];
+    // Render list all again sorted
+    this.#events.forEach(event => {
+      this._renderEvent(event);
+      // Create new markers and render them on map
+      this._renderMarker(event);
+    });
+    // Center map on the last item in array
+    const lastEvent = this.#events[this.#events.length - 1];
+    this._setIntoView(lastEvent);
+  }
+  // Toggle Sort Buttons
+  _toggleSortBtns() {
+    sortContainer.classList.toggle('zero__height');
+  }
+  // Display Delete Msg as Modal
+  _showDeleteMsg() {
+    confMsg.classList.remove('msg__hidden');
+  }
+  // Clear all events
+  _clearAll() {
+    localStorage.clear();
+    location.reload();
+    confMsg.classList.add('msg__hidden');
+  }
 }
 
 // Create an instance for our application
 const app = new App();
+
+// workout
