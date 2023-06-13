@@ -15,6 +15,9 @@ const showSortBtns = document.querySelector('.show__sort__btns');
 const validationMsg = document.querySelector('.validation__msg');
 const clearAllBtn = document.querySelector('.clr__all__btn');
 const sortContainer = document.querySelector('.sort__buttons__container');
+const confMsg = document.querySelector('.confirmation__msg');
+const yesBtn = document.querySelector('.yes__button');
+const noBtn = document.querySelector('.no__button');
 
 let map, mapEvent;
 
@@ -95,8 +98,19 @@ class App {
     showSortBtns.addEventListener('click', this._toggleSortBtns.bind(this));
     //Sort event listener
     sortContainer.addEventListener('click', this._sortAndRender.bind(this));
-    //Clear event listener
+    //Clear event listeners
     clearAllBtn.addEventListener('click', this._showDeleteMsg);
+    //listener for remove button and set in to view (click event)
+    containerEvents.addEventListener(
+      'click',
+      this._handleEventClick.bind(this)
+    );
+
+    yesBtn.addEventListener('click', this._clearAll);
+
+    noBtn.addEventListener('click', function () {
+      confMsg.classList.add('msg__hidden');
+    });
   }
 
   // Ask the user for location permissions and then perform callback functions
@@ -130,11 +144,6 @@ class App {
       }
     ).addTo(this.#map);
 
-    L.marker(coords)
-      .addTo(this.#map)
-      .bindPopup('Your approximate location')
-      .openPopup();
-
     // Configure Map Clicks by adding event listener (.on()), use .bind to bind this to the instance
     this.#map.on('click', this._showForm.bind(this));
 
@@ -150,7 +159,6 @@ class App {
     form.classList.remove('hidden');
     inputDistance.focus();
   }
-
   // Hide the form after user submits
   _hideForm() {
     //Clear input fields
@@ -161,13 +169,11 @@ class App {
         '';
     form.classList.add('hidden');
   }
-
   // Swap Cost and Calories fields when user switches from shopping to excercising
   _toggleField() {
     inputCalories.closest('.form__row').classList.toggle('form__row--hidden');
     inputCost.closest('.form__row').classList.toggle('form__row--hidden');
   }
-
   // Create a new marker
   _newEvent(e) {
     const guardClauseNum = (...inputs) =>
@@ -227,14 +233,18 @@ class App {
     //Add events to local storage
     this._setLocalStorage();
   }
-
   // Render Marker onto map
   _renderMarker(event) {
-    // Display Marker
-    L.marker(event.coords)
+    // custom icon
+    const maptyIcon = L.icon({
+      iconUrl: 'icon.png',
+      iconSize: [50, 55],
+      iconAnchor: [24, 3],
+    });
+    // create marker
+    const layer = L.marker(event.coords, { icon: maptyIcon })
       .addTo(this.#map)
       .bindPopup(
-        // Configure settings for marker pop-up
         L.popup({
           maxWidth: 250,
           minWidth: 100,
@@ -247,8 +257,10 @@ class App {
         `${event.type === 'shopping' ? '🛒' : '🏃‍♂️'} ${event.description}`
       )
       .openPopup();
-  }
 
+    // put the marker inside markers array
+    this.#markers.push(layer);
+  }
   // Render event onto UI List
   _renderEvent(event) {
     // Add metrics to an HTML String
@@ -306,33 +318,12 @@ class App {
     }
 
     // Append to the end
-    form.insertAdjacentHTML('afterend', html);
+    sortDivider.insertAdjacentHTML('afterend', html);
   }
-
-  // Pan to Popup when UI List Element is clicked
-  // _moveToPopup(e) {
-  //   // Recieve the porent element of the list item
-  //   const eventEl = e.target.closest('.event');
-  //   // Guard Clause
-  //   if (!eventEl) return;
-
-  //   //use .find() to return the marker with the same id
-  //   const event = this.#events.find(event => event.id === eventEl.dataset.id);
-
-  //   // Pan UI to the marker using leaflet library tools
-  //   this.#map.setView(event.coords, this.#zoom + 1, {
-  //     animate: true,
-  //     pan: {
-  //       duration: 1.5,
-  //     },
-  //   });
-  // }
-
   // Save the events into the local storage
   _setLocalStorage() {
     localStorage.setItem('events', JSON.stringify(this.#events));
   }
-
   //Retrieve the events from local storage
   _getLocalStorage() {
     // Recieve parsed data
@@ -352,16 +343,14 @@ class App {
       this._renderEvent(e);
     });
   }
-
   //Delete all events
   reset() {
     localStorage.removeItem('events');
     location.reload;
   }
-
   //Sets marker into view
-  _setIntoView(foundWorkout) {
-    this.#map.setView(foundWorkout.coords, 13);
+  _setIntoView(foundEvent) {
+    this.#map.setView(foundEvent.coords, 13);
   }
   // Helper Sort function
   _sortArray(array, currentDirection, type) {
@@ -456,9 +445,57 @@ class App {
     location.reload();
     confMsg.classList.add('msg__hidden');
   }
+  // Helper that sets Ids
+  _getId(e) {
+    // detect workout element on click
+    const element = e.target.closest('.workout');
+    if (element) {
+      // get info about the workout that was clicked on
+      const id = element.dataset.id;
+      const foundEvent = this.#events.find(elem => elem.id === id);
+      const eventIndex = this.#events.indexOf(foundEvent);
+      return [id, foundEvent, eventIndex, element];
+    }
+    return [];
+  }
+  //Remove Event by ID
+  _removeEvent(element, eventIndex) {
+    // 1. remove from list
+    element.remove();
+
+    // 2. remove from array
+    this.#events.splice(eventIndex, 1);
+
+    // 3. remove from map
+    this.#markers[eventIndex].remove();
+
+    // 4. remove from marker array
+    this.#markers.splice(eventIndex, 1);
+  }
+  //Handles click events on the UI Events
+  _handleEventClick(e) {
+    // find info about workout that was clicked
+    const [id, foundEvent, eventIndex, element] = this._getId(e);
+    // if no info, return
+    if (!id) return;
+
+    // 2. if remove__btn is clicked then remove item
+    if (e.target.classList.contains('remove__btn')) {
+      this._removeEvent(element, eventIndex);
+
+      // 4. update local storage
+      this._setLocalStorage();
+
+      return;
+    }
+    // 3. if an input field was clicked do nothing
+    if (e.target.classList.contains('workout__value')) {
+      return;
+    }
+    // 4. otherwise center item on map
+    this._setIntoView(foundEvent);
+  }
 }
 
 // Create an instance for our application
 const app = new App();
-
-// workout
