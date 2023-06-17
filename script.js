@@ -495,6 +495,9 @@ class App {
     // 4. otherwise center item on map
     this._setIntoView(foundEvent);
   }
+  _overview() {
+    //Overview
+  }
 }
 
 // Create an instance for our application
